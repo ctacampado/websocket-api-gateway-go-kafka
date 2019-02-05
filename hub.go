@@ -26,7 +26,12 @@ func (h *Hub) run() {
 	for {
 		select {
 		case client := <-h.register:
-			cid := uuid.Must(uuid.NewV4())
+			var err error
+			cid := uuid.Must(uuid.NewV4(), err)
+			if err != nil {
+				log.Printf("error generating uuid: %s", err)
+				return
+			}
 			h.clients[cid] = client
 			client.cid = cid
 			log.Print("...connected client ", cid)
