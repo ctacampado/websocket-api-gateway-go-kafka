@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/Shopify/sarama"
+	"github.com/satori/go.uuid"
+	"github.com/wvanbergen/kafka/consumergroup"
 )
 
 type Hub struct {
@@ -11,6 +13,8 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 	ecmsg      chan *EnrichedClientMessage
+	producers  map[string]sarama.SyncProducer
+	consumers  map[string]*consumergroup.ConsumerGroup
 }
 
 func newHub() *Hub {
@@ -19,10 +23,32 @@ func newHub() *Hub {
 		unregister: make(chan *Client),
 		clients:    make(map[uuid.UUID]*Client),
 		ecmsg:      make(chan *EnrichedClientMessage),
+		producers:  make(map[string]sarama.SyncProducer),
+		consumers:  make(map[string]*consumergroup.ConsumerGroup),
 	}
 }
 
 func (h *Hub) run() {
+	//initConfig
+	c := initConfig()
+	//create consumers and producers
+	for _, element := range c.Topics.Produce {
+		p, err := initProducer(c.KafkaAddr)
+		if err != nil {
+			log.Printf("error initializing producer: %s", err)
+			return
+		}
+		h.producers[element.Name] = p
+	}
+	for _, element := range c.Topics.Consume {
+		c, err := initConsumer(element.Name, c.KafkaAddr, c.Wsapigw)
+		if err != nil {
+			log.Printf("error initializing consumer: %s", err)
+			return
+		}
+		h.consumers[element.Name] = c
+	}
+
 	for {
 		select {
 		case client := <-h.register:

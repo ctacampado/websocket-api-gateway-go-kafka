@@ -1,0 +1,17 @@
+{
+  "zookeeper":"3.86.211.58:2181",
+  "kafka":"3.86.211.58:9092",
+  "topics": {
+    "produce":[
+      {"name":"enrollments","action":"enrollreq"}
+    ],
+    "consume":[
+      {"name":"query_rsp","action":"listen"},
+      {"name":"enrollment_update","action":"listen"},
+      {"name":"processed_enrollments","action":"listen"},
+      {"name":"dashboard_update","action":"listen"},
+      {"name":"notifications","action":"listen"}
+    ]
+  },
+  "cgroup":"wsapigw"
+}
