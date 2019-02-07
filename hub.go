@@ -32,22 +32,26 @@ func (h *Hub) run() {
 	//initConfig
 	c := initConfig()
 	//create consumers and producers
-	for _, element := range c.Topics.Produce {
-		p, err := initProducer(c.KafkaAddr)
-		if err != nil {
-			log.Printf("error initializing producer: %s", err)
-			return
-		}
-		h.producers[element.Name] = p
-	}
+	/*
+		for _, element := range c.Topics.Produce {
+			p, err := initProducer(c.KafkaAddr)
+			if err != nil {
+				log.Printf("error initializing producer: %s", err)
+				return
+			}
+			h.producers[element.Name] = p
+		}*/
 	for _, element := range c.Topics.Consume {
-		c, err := initConsumer(element.Name, c.KafkaAddr, c.Wsapigw)
+		c, err := initConsumer(element.Name, c.ZookeeperAddr, c.Cgroup)
 		if err != nil {
 			log.Printf("error initializing consumer: %s", err)
 			return
 		}
 		h.consumers[element.Name] = c
+		log.Print(element.Name)
 	}
+
+	log.Print("end init")
 
 	for {
 		select {

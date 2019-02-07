@@ -25,7 +25,7 @@ type KafkaConfig struct {
 	KafkaAddr     string `json:"kafka"`
 	ZookeeperAddr string `json:"zookeeper"`
 	Topics        Topics `json:"topics"`
-	Wsapigw       string `json:"wsapigw"`
+	Cgroup        string `json:"cgroup"`
 }
 
 func initConfig() *KafkaConfig {
@@ -64,17 +64,17 @@ func initProducer(kaddr string) (sarama.SyncProducer, error) {
 }
 
 func initConsumer(topic string, zaddr string, cgroup string) (*consumergroup.ConsumerGroup, error) {
-	log.Print(topic, zaddr)
 	// consumer config
 	config := consumergroup.NewConfig()
 	config.Offsets.Initial = sarama.OffsetOldest
-	config.Offsets.ProcessingTimeout = 10 * time.Second
+	config.Offsets.ProcessingTimeout = 2 * time.Second
 
 	// join to consumer group
+	log.Print("before joining consumer group!")
 	cg, err := consumergroup.JoinConsumerGroup(cgroup, []string{topic}, []string{zaddr}, config)
 	if err != nil {
 		return nil, err
 	}
-
+	log.Print("joined consumer group!")
 	return cg, err
 }
