@@ -10,7 +10,8 @@
       {"name":"enrollment_update","action":"listen"},
       {"name":"processed_enrollments","action":"listen"},
       {"name":"dashboard_update","action":"listen"},
-      {"name":"notifications","action":"listen"}
+      {"name":"notifications","action":"listen"},
+      {"name":"enrollments","action":"listen"}
     ]
   },
   "cgroup":"wsapigw"

@@ -11,6 +11,11 @@ import (
 	"github.com/wvanbergen/kafka/consumergroup"
 )
 
+type ConsumerMessage struct {
+	Topic string `json:"Topic"`
+	Value string `json:"Value"`
+}
+
 type Topic struct {
 	Name   string `json:"name"`
 	Action string `json:"action"`
@@ -63,15 +68,32 @@ func initProducer(kaddr string) (sarama.SyncProducer, error) {
 	return prd, err
 }
 
-func initConsumer(topic string, zaddr string, cgroup string) (*consumergroup.ConsumerGroup, error) {
+func publish(message []byte, topic string, producer sarama.SyncProducer) {
+	// publish sync
+	msg := &sarama.ProducerMessage{
+		Topic: topic,
+		Value: sarama.StringEncoder(string(message)),
+	}
+	p, o, err := producer.SendMessage(msg)
+	if err != nil {
+		log.Print("Error publish: ", err.Error())
+	}
+
+	// publish async
+	//producer.Input() <- &sarama.ProducerMessage{
+
+	log.Print("Partition: ", p)
+	log.Print("Offset: ", o)
+}
+
+func initConsumer(topics []string, zaddr string, cgroup string) (*consumergroup.ConsumerGroup, error) {
 	// consumer config
 	config := consumergroup.NewConfig()
 	config.Offsets.Initial = sarama.OffsetOldest
 	config.Offsets.ProcessingTimeout = 2 * time.Second
 
 	// join to consumer group
-	log.Print("before joining consumer group!")
-	cg, err := consumergroup.JoinConsumerGroup(cgroup, []string{topic}, []string{zaddr}, config)
+	cg, err := consumergroup.JoinConsumerGroup(cgroup, topics, []string{zaddr}, config)
 	if err != nil {
 		return nil, err
 	}

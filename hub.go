@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/Shopify/sarama"
@@ -12,9 +13,12 @@ type Hub struct {
 	clients    map[uuid.UUID]*Client
 	register   chan *Client
 	unregister chan *Client
-	ecmsg      chan *EnrichedClientMessage
-	producers  map[string]sarama.SyncProducer
-	consumers  map[string]*consumergroup.ConsumerGroup
+	pmsg       chan *EnrichedClientMessage
+	cmsg       chan *ConsumerMessage
+	producer   sarama.SyncProducer
+	ptopics    map[string]string
+	ctopics    []string
+	consumers  *consumergroup.ConsumerGroup
 }
 
 func newHub() *Hub {
@@ -22,34 +26,34 @@ func newHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[uuid.UUID]*Client),
-		ecmsg:      make(chan *EnrichedClientMessage),
-		producers:  make(map[string]sarama.SyncProducer),
-		consumers:  make(map[string]*consumergroup.ConsumerGroup),
+		pmsg:       make(chan *EnrichedClientMessage),
+		cmsg:       make(chan *ConsumerMessage),
+		ptopics:    make(map[string]string),
+		ctopics:    make([]string, 0),
 	}
 }
 
 func (h *Hub) run() {
-	//initConfig
 	c := initConfig()
 	//create consumers and producers
-	/*
-		for _, element := range c.Topics.Produce {
-			p, err := initProducer(c.KafkaAddr)
-			if err != nil {
-				log.Printf("error initializing producer: %s", err)
-				return
-			}
-			h.producers[element.Name] = p
-		}*/
-	for _, element := range c.Topics.Consume {
-		c, err := initConsumer(element.Name, c.ZookeeperAddr, c.Cgroup)
-		if err != nil {
-			log.Printf("error initializing consumer: %s", err)
-			return
-		}
-		h.consumers[element.Name] = c
-		log.Print(element.Name)
+	for _, element := range c.Topics.Produce {
+		h.ptopics[element.Action] = element.Name
 	}
+	for _, element := range c.Topics.Consume {
+		h.ctopics = append(h.ctopics, element.Name)
+	}
+	prod, err := initProducer(c.KafkaAddr)
+	if err != nil {
+		log.Printf("error initializing producer: %s", err)
+		return
+	}
+	h.producer = prod
+	cons, err := initConsumer(h.ctopics, c.ZookeeperAddr, c.Cgroup)
+	if err != nil {
+		log.Printf("error initializing consumer: %s", err)
+		return
+	}
+	h.consumers = cons
 
 	log.Print("end init")
 
@@ -76,9 +80,15 @@ func (h *Hub) run() {
 					log.Printf(prestr+"client %s removed!", client.cid)
 				}
 			}
-		case ecmsg := <-h.ecmsg:
-			log.Print(ecmsg.ClientMsg.Acctype)
-			log.Printf("%+v\n", *h.clients[ecmsg.ClientID])
+		case msg := <-h.pmsg:
+			topic := h.ptopics[msg.ClientMsg.Action]
+			message, err := json.Marshal(msg)
+			if err != nil {
+				break
+			}
+			publish(message, topic, h.producer)
+		case cmsg := <-h.cmsg:
+			log.Printf("%+v\n", cmsg)
 		}
 	}
 }

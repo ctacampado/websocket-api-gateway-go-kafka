@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
+	"github.com/wvanbergen/kafka/consumergroup"
 )
 
 const (
@@ -83,7 +84,32 @@ func handleClient(c *Client) {
 			ClientID:  c.cid,
 			ClientMsg: *cmsg}
 		log.Printf("...enriched msg: %+v\n", emsg)
-		c.hub.ecmsg <- emsg
+
+		c.hub.pmsg <- emsg
+	}
+}
+
+func consumeKafka(h *Hub, cg *consumergroup.ConsumerGroup) {
+	for {
+		select {
+		case msg := <-cg.Messages():
+			// messages coming through chanel
+			// only take messages from subscribed topic
+			/*if msg.Topic != topic {
+				continue
+			}*/
+
+			log.Println("Topic: ", msg.Topic)
+			log.Println("Value: ", string(msg.Value))
+
+			// commit to zookeeper that message is read
+			// this prevent read message multiple times after restart
+			err := cg.CommitUpto(msg)
+			if err != nil {
+				log.Println("Error commit zookeeper: ", err.Error())
+			}
+			h.cmsg <- &ConsumerMessage{Topic: string(msg.Topic), Value: string(msg.Value)}
+		}
 	}
 }
 
@@ -98,6 +124,7 @@ func serve(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	client.hub.register <- client
 
 	go handleClient(client)
+	go consumeKafka(hub, hub.consumers)
 }
 
 func main() {
