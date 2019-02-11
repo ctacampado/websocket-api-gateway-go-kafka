@@ -1,17 +1,19 @@
 {
-  "zookeeper":"3.86.211.58:2181",
-  "kafka":"3.86.211.58:9092",
+  "zookeeper":"localhost:2181",
+  "kafka":"localhost:9092",
   "topics": {
     "produce":[
-      {"name":"enrollments","action":"enrollreq"}
+      {"name":"employees.enrollment.req","action":"enrollment_request"},
+      {"name":"ir.ledgertx.req","action":"approval_updates"},
+      {"name":"fpa.ledgertx.req","action":"approval_updates"},
+      {"name":"fpb.ledgertx.req","action":"approval_updates"},
+      {"name":"presenter.list.req","action":"employee_list_request"}
     ],
     "consume":[
-      {"name":"query_rsp","action":"listen"},
-      {"name":"enrollment_update","action":"listen"},
-      {"name":"processed_enrollments","action":"listen"},
-      {"name":"dashboard_update","action":"listen"},
-      {"name":"notifications","action":"listen"},
-      {"name":"enrollments","action":"listen"}
+      {"name":"dashboard.updates","action":"dashboard_updates"},
+      {"name":"ir.approval.req","action":"approval_request"},
+      {"name":"fpa.approval.req","action":"approval_request"},
+      {"name":"fpb.approval.req","action":"approval_request"}
     ]
   },
   "cgroup":"wsapigw"
