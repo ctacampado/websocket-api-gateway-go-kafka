@@ -28,9 +28,9 @@ const (
 )
 
 type ClientMessage struct {
-	Acctype string `json:"Acctype"`
-	Action  string `json:"Action"`
-	Data    string `json:"Data"`
+	Clienttype string `json:"Clienttype"`
+	Action     string `json:"Action"`
+	Data       string `json:"Data"`
 }
 
 type EnrichedClientMessage struct {
@@ -39,9 +39,10 @@ type EnrichedClientMessage struct {
 }
 
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	cid  uuid.UUID
+	hub        *Hub
+	conn       *websocket.Conn
+	cid        uuid.UUID
+	clienttype string
 }
 
 var upgrader = websocket.Upgrader{
@@ -80,6 +81,7 @@ func handleClient(c *Client) {
 			break
 		}
 		log.Printf("...client msg: %+v\n", cmsg)
+		c.clienttype = cmsg.Clienttype
 		emsg := &EnrichedClientMessage{
 			ClientID:  c.cid,
 			ClientMsg: *cmsg}
