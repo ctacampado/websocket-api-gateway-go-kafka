@@ -2,14 +2,12 @@
   "zookeeper":"localhost:2181",
   "kafka":"localhost:9092",
   "topics": {
-    "produce":[
-      {"name":"employees.enrollment.req","action":"enrollment_request"},
-      {"name":"ledgertx.req","action":"approval_updates"}
-    ],
     "consume":[
-      {"name":"dashboard.updates","action":"dashboard_updates"},
-      {"name":"enrollment.updates","action":"enrollment_update"},
-      {"name":"enrollment.approval.req","action":"enrollment_approval_request"}
+      "dashboard.updates",
+      "employee.updates",
+      "employee.enrollment.approval.req",
+      "employee.changefp.req",
+      "new.block.created"
     ]
   },
   "cgroup":"wsapigw"

@@ -9,16 +9,15 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	uuid "github.com/satori/go.uuid"
 	"github.com/wvanbergen/kafka/consumergroup"
 )
 
 const (
 	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
+	writeWait = 180 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
+	pongWait = 180 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -28,21 +27,18 @@ const (
 )
 
 type ClientMessage struct {
-	Clienttype string `json:"Clienttype"`
-	Action     string `json:"Action"`
-	Data       string `json:"Data"`
-}
-
-type EnrichedClientMessage struct {
-	ClientID  uuid.UUID
-	ClientMsg ClientMessage
+	CID      string   `json:"CID,omitempty"`
+	Username string   `json:"Username,omitempty"`
+	Type     string   `json:"Type,omitempty"`
+	OrgCode  string   `json:"OrgCode,omitempty"`
+	Payload  *Payload `json:"Payload,omitempty"`
 }
 
 type Client struct {
-	hub        *Hub
-	conn       *websocket.Conn
-	cid        uuid.UUID
-	clienttype string
+	hub  *Hub
+	conn *websocket.Conn
+	cid  string
+	Type string
 }
 
 var upgrader = websocket.Upgrader{
@@ -58,7 +54,7 @@ func handleClient(c *Client) {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
-	c.conn.SetReadLimit(maxMessageSize)
+	//c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
 		c.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -74,20 +70,16 @@ func handleClient(c *Client) {
 			}
 			break
 		}
+		log.Printf("...new msg!: %s\n", msg)
 		cmsg := &ClientMessage{}
 		_ = json.Unmarshal(msg, cmsg)
 		if err != nil {
 			log.Printf("error: %v", err)
 			break
 		}
-		log.Printf("...client msg: %+v\n", cmsg)
-		c.clienttype = cmsg.Clienttype
-		emsg := &EnrichedClientMessage{
-			ClientID:  c.cid,
-			ClientMsg: *cmsg}
-		log.Printf("...enriched msg: %+v\n", emsg)
-
-		c.hub.pmsg <- emsg
+		log.Printf("...new client msg!: %+v\n", cmsg)
+		cmsg.CID = c.cid
+		c.hub.pmsg <- cmsg
 	}
 }
 
@@ -95,35 +87,54 @@ func consumeKafka(h *Hub, cg *consumergroup.ConsumerGroup) {
 	for {
 		select {
 		case msg := <-cg.Messages():
-			// messages coming through chanel
-			// only take messages from subscribed topic
-			/*if msg.Topic != topic {
-				continue
-			}*/
-
-			log.Println("Topic: ", msg.Topic)
-			log.Println("Value: ", string(msg.Value))
-
 			// commit to zookeeper that message is read
 			// this prevent read message multiple times after restart
 			err := cg.CommitUpto(msg)
 			if err != nil {
 				log.Println("Error commit zookeeper: ", err.Error())
 			}
-			h.cmsg <- &ConsumerMessage{Topic: string(msg.Topic), Value: string(msg.Value)}
+			h.cmsg <- &ConsumerMessage{Value: string(msg.Value)}
 		}
 	}
 }
 
-func serve(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func serveRA(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn}
-	client.hub.register <- client
+	client := &Client{hub: hub, conn: conn, Type: "RA"}
+	hub.register <- client
+
+	go handleClient(client)
+	go consumeKafka(hub, hub.consumers)
+}
+
+func serveFPA(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	client := &Client{hub: hub, conn: conn, Type: "FPA"}
+	hub.register <- client
+
+	go handleClient(client)
+	go consumeKafka(hub, hub.consumers)
+}
+
+func serveFPB(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	client := &Client{hub: hub, conn: conn, Type: "FPB"}
+	hub.register <- client
 
 	go handleClient(client)
 	go consumeKafka(hub, hub.consumers)
@@ -134,8 +145,14 @@ func main() {
 	addr := *ip + ":" + strconv.Itoa(*port)
 	hub := newHub()
 	go hub.run()
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serve(hub, w, r)
+	http.HandleFunc("/ra", func(w http.ResponseWriter, r *http.Request) {
+		serveRA(hub, w, r)
+	})
+	http.HandleFunc("/fpa", func(w http.ResponseWriter, r *http.Request) {
+		serveFPA(hub, w, r)
+	})
+	http.HandleFunc("/fpb", func(w http.ResponseWriter, r *http.Request) {
+		serveFPB(hub, w, r)
 	})
 	log.Print("websocket server started! Now listening at ", addr)
 	err := http.ListenAndServe(addr, nil)

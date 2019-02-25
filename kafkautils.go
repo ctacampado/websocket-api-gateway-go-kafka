@@ -12,18 +12,11 @@ import (
 )
 
 type ConsumerMessage struct {
-	Topic string `json:"Topic"`
 	Value string `json:"Value"`
 }
 
-type Topic struct {
-	Name   string `json:"name"`
-	Action string `json:"action"`
-}
-
 type Topics struct {
-	Produce []Topic `json:"produce"`
-	Consume []Topic `json:"consume"`
+	Consume []string `json:"consume"`
 }
 
 type KafkaConfig struct {
