@@ -124,7 +124,8 @@ func (h *Hub) run() {
 				if err != nil {
 					log.Printf("error: %v", err)
 					client.conn.Close()
-					delete(h.clients, msg.CID)
+					h.unregister <- client
+					//delete(h.clients, msg.CID)
 				}
 			} else {
 				for _, client := range h.clients {
@@ -135,7 +136,8 @@ func (h *Hub) run() {
 							if err != nil {
 								log.Printf("error: %v", err)
 								client.conn.Close()
-								delete(h.clients, msg.CID)
+								//delete(h.clients, msg.CID)
+								h.unregister <- client
 							}
 						}
 					}
@@ -145,7 +147,8 @@ func (h *Hub) run() {
 						if err != nil {
 							log.Printf("error: %v", err)
 							client.conn.Close()
-							delete(h.clients, msg.CID)
+							//delete(h.clients, msg.CID)
+							h.unregister <- client
 						}
 					}
 
@@ -155,7 +158,8 @@ func (h *Hub) run() {
 							if err != nil {
 								log.Printf("error: %v", err)
 								client.conn.Close()
-								delete(h.clients, msg.CID)
+								//delete(h.clients, msg.CID)
+								h.unregister <- client
 							}
 						}
 					}
