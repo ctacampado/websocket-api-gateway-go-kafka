@@ -50,16 +50,17 @@ var ip = flag.String("ip", "localhost", "http service address")
 var port = flag.Int("port", 8080, "server port")
 
 func handleClient(c *Client) {
-	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
-	}()
-	//c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error {
+	/*
+		defer func() {
+			c.hub.unregister <- c
+			c.conn.Close()
+		}()
+		c.conn.SetReadLimit(maxMessageSize)
 		c.conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
-	})
+		c.conn.SetPongHandler(func(string) error {
+			c.conn.SetReadDeadline(time.Now().Add(pongWait))
+			return nil
+		})*/
 	for {
 		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
