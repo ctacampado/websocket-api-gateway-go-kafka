@@ -46,8 +46,8 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-var ip = flag.String("ip", "localhost", "http service address")
-var port = flag.Int("port", 8080, "server port")
+var ip = flag.String("ip", "0.0.0.0", "http service address")
+var port = flag.Int("port", 3000, "server port")
 
 func handleClient(c *Client) {
 	defer func() {
