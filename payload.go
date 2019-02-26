@@ -67,10 +67,10 @@ type ChangeFPReq struct {
 //Private Data
 //Payload to/from UI
 type ChangeFPApproval struct {
-	EmpID      string    `json:"EmpID"`
-	CurrFPInfo FPInfo    `json:"CurrFPInfo"`
-	NewFPInfo  FPInfo    `json:"NewFPInfo"`
-	Approvals  Approvals `json:"Approvals"`
+	EmployeeData string    `json:"EmployeeData"`
+	FPInfo       FPInfo    `json:"FPInfo"`
+	NewFPInfo    FPInfo    `json:"NewFPInfo"`
+	Approvals    Approvals `json:"Approvals"`
 }
 
 //Payload contents
