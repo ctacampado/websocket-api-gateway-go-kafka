@@ -36,7 +36,7 @@ type EmpData struct {
 type Employee struct {
 	ObjectType       string    `json:"docType"`
 	TxID             string    `json:"TxID"` //most recent Transaction ID
-	EmpData          EmpData   `json:"EmpData"`
+	EmployeeData     EmpData   `json:"EmployeeData"`
 	FPInfo           FPInfo    `json:"FPInfo"`
 	EnrollmentStatus string    `json:"EnrollmentStatus"`
 	NewFPInfo        FPInfo    `json:"NewFPInfo,omitempty"`
