@@ -63,6 +63,7 @@ func initProducer(kaddr string) (sarama.SyncProducer, error) {
 
 func publish(message []byte, topic string, producer sarama.SyncProducer) {
 	// publish sync
+	log.Printf("topic: %s", topic)
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.StringEncoder(string(message)),

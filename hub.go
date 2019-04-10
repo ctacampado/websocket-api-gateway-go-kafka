@@ -100,7 +100,7 @@ func (h *Hub) run() {
 			if nil != msg.Payload {
 				topic = "ledgertx.req"
 			} else {
-				topic = "client.connected"
+				topic = "clients.connected"
 			}
 			message, err := json.Marshal(msg)
 			if err != nil {
